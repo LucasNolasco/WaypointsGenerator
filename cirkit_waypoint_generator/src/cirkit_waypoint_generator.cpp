@@ -36,55 +36,72 @@ public:
     ros::NodeHandle n("~");
     n.param("dist_th", dist_th_, 1.0); // distance threshold [m]
     n.param("yaw_th", yaw_th_, 45.0*3.1415/180.0); // yaw threshold [rad]
+
+    std::cout << "PARAMETER DIST_TH: " << dist_th_ << std::endl;
+
     // odom_sub_ = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose",
     //                           1,
     //                           &CirkitWaypointGenerator::addWaypoint, this);
     gps_sub_ = nh_.subscribe<sensor_msgs::NavSatFix>("/fix",
                               1,
                               &CirkitWaypointGenerator::addWaypoint, this);
-    clicked_sub_ = nh_.subscribe("clicked_point", 1, &CirkitWaypointGenerator::clickedPointCallback, this);
+    // clicked_sub_ = nh_.subscribe("clicked_point", 1, &CirkitWaypointGenerator::clickedPointCallback, this);
     reach_marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/reach_threshold_markers", 1);
     waypoints_pub_ = nh_.advertise<cirkit_waypoint_manager_msgs::WaypointArray>("/waypoints", 1);
     waypoint_box_count_ = 0;
     server.reset( new interactive_markers::InteractiveMarkerServer("cube") );
   }
 
-  // void load(std::string waypoint_file)
-  // {
-  //   const int rows_num = 9; // x, y, z, Qx, Qy, Qz, Qw, is_searching_area, reach_threshold
-  //   boost::char_separator<char> sep("," ,"", boost::keep_empty_tokens);
-  //   std::ifstream ifs(waypoint_file.c_str());
-  //   std::string line;
-  //   while(ifs.good()){
-  //     getline(ifs, line);
-  //     if(line.empty()){ break; }
-  //     tokenizer tokens(line, sep);
-  //     std::vector<double> data;
-  //     tokenizer::iterator it = tokens.begin();
-  //     for(; it != tokens.end() ; ++it){
-  //       std::stringstream ss;
-  //       double d;
-  //       ss << *it;
-  //       ss >> d;
-  //       data.push_back(d);
-  //     }
-  //     if(data.size() != rows_num){
-  //       ROS_ERROR("Row size is mismatch!!");
-  //       return;
-  //     }else{
-  //       geometry_msgs::PoseStamped new_pose;
-  //       new_pose.pose.position.x = data[0];
-  //       new_pose.pose.position.y = data[1];
-  //       new_pose.pose.position.z = data[2];
-  //       new_pose.pose.orientation.x = data[3];
-  //       new_pose.pose.orientation.y = data[4];
-  //       new_pose.pose.orientation.z = data[5];
-  //       new_pose.pose.orientation.w = data[6];
-  //       makeWaypointMarker(new_pose, (int)data[7], data[8]);
-  //     }
-  //   }
-  //   ROS_INFO_STREAM(waypoint_box_count_ << "waypoints are loaded.");
-  // }
+  void load(std::string waypoint_file)
+  {
+    const int rows_num = 25; // id, x, y, z, Qx, Qy, Qz, Qw, status, status_service, latitude, longitude, altitude, covariance (9), covariance_type, is_searching_area, reach_threshold
+    boost::char_separator<char> sep("," ,"", boost::keep_empty_tokens);
+    std::ifstream ifs(waypoint_file.c_str());
+    std::string line;
+    while(ifs.good()){
+      getline(ifs, line);
+      if(line.empty()){ break; }
+      tokenizer tokens(line, sep);
+      std::vector<double> data;
+      tokenizer::iterator it = tokens.begin();
+      for(; it != tokens.end() ; ++it){
+        std::stringstream ss;
+        double d;
+        ss << *it;
+        ss >> d;
+        data.push_back(d);
+      }
+      if(data.size() != rows_num){
+        ROS_ERROR("Row size is mismatch!!");
+        return;
+      }else{
+        geometry_msgs::PoseStamped new_pose;
+        new_pose.pose.position.x = data[1];
+        new_pose.pose.position.y = data[2];
+        new_pose.pose.position.z = data[3];
+        new_pose.pose.orientation.x = data[4];
+        new_pose.pose.orientation.y = data[5];
+        new_pose.pose.orientation.z = data[6];
+        new_pose.pose.orientation.w = data[7];
+
+        sensor_msgs::NavSatFix new_fix;
+        new_fix.status.status = data[8];
+        new_fix.status.service = data[9];
+        new_fix.latitude = data[10];
+        new_fix.longitude = data[11];
+        new_fix.altitude = data[12];
+
+        for(int i = 0; i < 9; i++) {
+          new_fix.position_covariance[i] = data[13 + i];
+        }
+
+        new_fix.position_covariance_type = data[22];
+
+        makeWaypointMarker(new_pose, new_fix, (int)data[23], data[24]);
+      }
+    }
+    ROS_INFO_STREAM(waypoint_box_count_ << "waypoints are loaded.");
+  }
 
   double calculateDistance(geometry_msgs::PoseStamped new_pose)
   {
@@ -202,7 +219,7 @@ public:
     server->applyChanges();
 
     cirkit_waypoint_manager_msgs::Waypoint waypoint;
-    waypoint.number = waypoint_box_count_;
+    waypoint.id = waypoint_box_count_;
     waypoint.pose = new_pose.pose;
     waypoint.gps_fix = gps_fix;
     waypoint.is_search_area = is_searching_area;
@@ -236,22 +253,6 @@ public:
     } catch(tf::TransformException ex) {
        ROS_INFO("Error on TF");
     }
-
-    // if(tf_ok) {
-    //   pose_stamped->header.stamp = ros::Time::now();
-    //   pose_stamped->header.frame_id = "/map";
-      
-    //   pose_stamped->pose.position.x = transform.getOrigin().getX();
-    //   pose_stamped->pose.position.y = transform.getOrigin().getY();
-    //   pose_stamped->pose.position.z = transform.getOrigin().getZ();
-      
-    //   pose_stamped->pose.orientation.x = transform.getRotation().getX();
-    //   pose_stamped->pose.orientation.y = transform.getRotation().getY();
-    //   pose_stamped->pose.orientation.z = transform.getRotation().getZ();
-    //   pose_stamped->pose.orientation.w = transform.getRotation().getW();
-      
-    //   success = true;
-    // }
 
     return success;
   }
@@ -290,14 +291,14 @@ public:
     server->applyChanges();
   }
 
-  void clickedPointCallback(const geometry_msgs::PointStamped &point)
-  {
-    geometry_msgs::PoseStamped pose;
-    tf::pointTFToMsg(tf::Vector3( point.point.x, point.point.y, 0), pose.pose.position);
-    tf::quaternionTFToMsg(tf::createQuaternionFromRPY(0, 0, 0), pose.pose.orientation);
-    //makeWaypointMarker(pose, 0, 3.0);
-    server->applyChanges();
-  }
+  // void clickedPointCallback(const geometry_msgs::PointStamped &point)
+  // {
+  //   geometry_msgs::PoseStamped pose;
+  //   tf::pointTFToMsg(tf::Vector3( point.point.x, point.point.y, 0), pose.pose.position);
+  //   tf::quaternionTFToMsg(tf::createQuaternionFromRPY(0, 0, 0), pose.pose.orientation);
+  //   makeWaypointMarker(pose, 0, 3.0);
+  //   server->applyChanges();
+  // }
   
   void tfSendTransformCallback(const ros::TimerEvent&)
   {  
@@ -306,7 +307,7 @@ public:
 
     for (size_t i = 0; i < waypoints_.waypoints.size(); ++i) {
       std::stringstream s;
-      s << waypoints_.waypoints[i].number;
+      s << waypoints_.waypoints[i].id;
       t.setOrigin(tf::Vector3(waypoints_.waypoints[i].pose.position.x,
                               waypoints_.waypoints[i].pose.position.y,
                               waypoints_.waypoints[i].pose.position.z));
@@ -333,7 +334,7 @@ private:
   ros::Rate rate_;
   //ros::Subscriber odom_sub_;
   ros::Subscriber gps_sub_;
-  ros::Subscriber clicked_sub_;
+  // ros::Subscriber clicked_sub_;
   ros::Publisher reach_marker_pub_;
   ros::Publisher waypoints_pub_;
   geometry_msgs::PoseStamped last_pose_;
@@ -369,7 +370,7 @@ int main(int argc, char** argv)
       return 0;
     }
     if (vm.count("load")) {
-      //generator.load(vm["load"].as<std::string>());
+      generator.load(vm["load"].as<std::string>());
     }
   } catch (boost::program_options::error& e) {
     std::cerr << "ERROR: " << e.what() << std::endl << std::endl;

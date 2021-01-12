@@ -58,17 +58,35 @@ public:
     //std::sort(all_markers.markers.begin(), all_markers.markers.end(), compareInteractiveMarker);
     size_t size = waypoints.waypoints.size();
     for(unsigned int i = 0; i < size; i++){
-      //３次元の位置の指定
-      savefile << waypoints.waypoints[i].pose.position.x << ","
+      savefile << waypoints.waypoints[i].id << ","  /* Waypoint ID */
+               
+               /* Stamped Position */
+               << waypoints.waypoints[i].pose.position.x << ","
                << waypoints.waypoints[i].pose.position.y << ","
-               << 0 << ","
+               << waypoints.waypoints[i].pose.position.z << "," // TODO: Por que colocar 0 direto?
                << waypoints.waypoints[i].pose.orientation.x << ","
                << waypoints.waypoints[i].pose.orientation.y << ","
                << waypoints.waypoints[i].pose.orientation.z << ","
                << waypoints.waypoints[i].pose.orientation.w << ","
+
+               /* GPS Fix */
+               << static_cast<uint16_t> (waypoints.waypoints[i].gps_fix.status.status) << ","
+               << waypoints.waypoints[i].gps_fix.status.service << ","
+               << waypoints.waypoints[i].gps_fix.latitude << ","
+               << waypoints.waypoints[i].gps_fix.longitude << ","
+               << waypoints.waypoints[i].gps_fix.altitude << ",";
+
+               for(int j = 0; j < 9; j++) {
+                savefile << waypoints.waypoints[i].gps_fix.position_covariance[j] << ",";
+               }
+
+               savefile << static_cast<uint16_t> (waypoints.waypoints[i].gps_fix.position_covariance_type) << ","
+
+               /* TODO: maybe remove these */
                << waypoints.waypoints[i].is_search_area << ","
                << waypoints.waypoints[i].reach_tolerance * 2.0 << std::endl;
-      ROS_INFO_STREAM("Num: " << waypoints.waypoints[i].number);
+      
+      ROS_INFO_STREAM("ID: " << waypoints.waypoints[i].id << " Fix Status: " << static_cast<uint16_t> (waypoints.waypoints[i].gps_fix.status.status) << " Cov Type: " << static_cast<uint16_t> (waypoints.waypoints[i].gps_fix.position_covariance_type));
     }
     saved_waypoints_ = true;
     ROS_INFO_STREAM("Saved to : " << waypoints_file_);

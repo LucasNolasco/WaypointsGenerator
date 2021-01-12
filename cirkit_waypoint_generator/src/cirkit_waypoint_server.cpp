@@ -6,6 +6,7 @@
 #include <tf/tf.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <sensor_msgs/NavSatFix.h>
 
 #include <fstream>
 #include <iostream>
@@ -35,10 +36,13 @@ public:
 
   void load(std::string waypoint_file)
   {
-    const int rows_num = 9; // x, y, z, Qx, Qy, Qz, Qw, is_searching_area, reach_threshold
+    const int rows_num = 25; // id, x, y, z, Qx, Qy, Qz, Qw, status, status_service, latitude, longitude, altitude, covariance (9), covariance_type, is_searching_area, reach_threshold
     boost::char_separator<char> sep("," ,"", boost::keep_empty_tokens);
     std::ifstream ifs(waypoint_file.c_str());
     std::string line;
+
+    waypoint_box_count_ = 0;
+
     while(ifs.good()){
       getline(ifs, line);
       if(line.empty()){ break; }
@@ -56,18 +60,32 @@ public:
         ROS_ERROR("Row size is mismatch!!");
         return;
       }else{
-        geometry_msgs::PoseWithCovariance new_pose;
-        new_pose.pose.position.x = data[0];
-        new_pose.pose.position.y = data[1];
-        new_pose.pose.position.z = data[2];
-        new_pose.pose.orientation.x = data[3];
-        new_pose.pose.orientation.y = data[4];
-        new_pose.pose.orientation.z = data[5];
-        new_pose.pose.orientation.w = data[6];
-        makeWaypointMarker(new_pose, (int)data[7], data[8]);
+        geometry_msgs::PoseStamped new_pose;
+        new_pose.pose.position.x = data[1];
+        new_pose.pose.position.y = data[2];
+        new_pose.pose.position.z = data[3];
+        new_pose.pose.orientation.x = data[4];
+        new_pose.pose.orientation.y = data[5];
+        new_pose.pose.orientation.z = data[6];
+        new_pose.pose.orientation.w = data[7];
+
+        sensor_msgs::NavSatFix new_fix;
+        new_fix.status.status = data[8];
+        new_fix.status.service = data[9];
+        new_fix.latitude = data[10];
+        new_fix.longitude = data[11];
+        new_fix.altitude = data[12];
+
+        for(int i = 0; i < 9; i++) {
+          new_fix.position_covariance[i] = data[13 + i];
+        }
+
+        new_fix.position_covariance_type = data[22];
+
+        makeWaypointMarker(new_pose, (int)data[23], data[24]);
       }
     }
-    ROS_INFO_STREAM(waypoint_box_count_ << "waypoints are loaded.");
+    ROS_INFO_STREAM(waypoint_box_count_ << " waypoints are loaded.");
   }
 
 
@@ -80,7 +98,7 @@ public:
   
 
   
-  void makeWaypointMarker(const geometry_msgs::PoseWithCovariance new_pose,
+  void makeWaypointMarker(const geometry_msgs::PoseStamped new_pose,
                           int is_searching_area, double reach_threshold)
   {
     visualization_msgs::Marker waypoint_marker;
