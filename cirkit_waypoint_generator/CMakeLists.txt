@@ -49,6 +49,10 @@ add_executable(cirkit_waypoint_server src/cirkit_waypoint_server.cpp)
 add_dependencies(cirkit_waypoint_server ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cirkit_waypoint_server ${catkin_LIBRARIES} ${Boost_LIBRARIES} -lboost_program_options)
 
+add_executable(route_generator src/route_generator.cpp)
+add_dependencies(route_generator ${catkin_EXPORTED_TARGETS})
+target_link_libraries(route_generator ${catkin_LIBRARIES} ${Boost_LIBRARIES} -lboost_program_options)
+
 # Install
 install(TARGETS cirkit_waypoint_generator
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -57,5 +61,8 @@ install(TARGETS cirkit_waypoint_saver
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 install(TARGETS cirkit_waypoint_server
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(TARGETS route_generator
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

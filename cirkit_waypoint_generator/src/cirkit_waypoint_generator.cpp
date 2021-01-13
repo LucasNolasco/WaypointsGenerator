@@ -38,43 +38,43 @@ public:
     n.param("yaw_th", yaw_th_, 45.0*3.1415/180.0); // yaw threshold [rad]
 
     std::cout << "PARAMETER DIST_TH: " << dist_th_ << std::endl;
-
-    // odom_sub_ = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("/amcl_pose",
-    //                           1,
-    //                           &CirkitWaypointGenerator::addWaypoint, this);
-    gps_sub_ = nh_.subscribe<sensor_msgs::NavSatFix>("/fix",
-                              1,
-                              &CirkitWaypointGenerator::addWaypoint, this);
-    // clicked_sub_ = nh_.subscribe("clicked_point", 1, &CirkitWaypointGenerator::clickedPointCallback, this);
+    gps_sub_ = nh_.subscribe<sensor_msgs::NavSatFix>("/fix", 1, &CirkitWaypointGenerator::addWaypoint, this);
     reach_marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/reach_threshold_markers", 1);
     waypoints_pub_ = nh_.advertise<cirkit_waypoint_manager_msgs::WaypointArray>("/waypoints", 1);
     waypoint_box_count_ = 0;
-    server.reset( new interactive_markers::InteractiveMarkerServer("cube") );
+    server.reset(new interactive_markers::InteractiveMarkerServer("cube"));
   }
 
   void load(std::string waypoint_file)
   {
-    const int rows_num = 25; // id, x, y, z, Qx, Qy, Qz, Qw, status, status_service, latitude, longitude, altitude, covariance (9), covariance_type, is_searching_area, reach_threshold
+    const int rows_num = 25; // id, x, y, z, Qx, Qy, Qz, Qw, status, status_service, latitude, longitude, altitude, covariance (9), covariance_type, is_inspection_area, reach_threshold
     boost::char_separator<char> sep("," ,"", boost::keep_empty_tokens);
     std::ifstream ifs(waypoint_file.c_str());
     std::string line;
-    while(ifs.good()){
+    while(ifs.good()) {
       getline(ifs, line);
-      if(line.empty()){ break; }
+      
+      if(line.empty()) {
+        break; 
+      }
+
       tokenizer tokens(line, sep);
       std::vector<double> data;
       tokenizer::iterator it = tokens.begin();
-      for(; it != tokens.end() ; ++it){
+      
+      for(; it != tokens.end() ; ++it) {
         std::stringstream ss;
         double d;
         ss << *it;
         ss >> d;
         data.push_back(d);
       }
-      if(data.size() != rows_num){
+
+      if(data.size() != rows_num) {
         ROS_ERROR("Row size is mismatch!!");
         return;
-      }else{
+      }
+      else {
         geometry_msgs::PoseStamped new_pose;
         new_pose.pose.position.x = data[1];
         new_pose.pose.position.y = data[2];
@@ -125,7 +125,7 @@ public:
   }
 
   InteractiveMarkerControl& makeWaypointMarkerControl(InteractiveMarker &msg,
-                                                      int is_searching_area)
+                                                      int is_inspection_area)
   {
     InteractiveMarkerControl control;
     control.orientation.w = 1;
@@ -135,9 +135,6 @@ public:
     control.name = "rotate_z";
     control.interaction_mode = InteractiveMarkerControl::ROTATE_AXIS;
     msg.controls.push_back(control);
-    // control.interaction_mode = InteractiveMarkerControl::MOVE_ROTATE;
-    // msg.controls.push_back(control);
-    // control.independent_marker_orientation = true;
     control.orientation.w = 1;
     control.orientation.x = 0;
     control.orientation.y = 1;
@@ -150,7 +147,7 @@ public:
     marker.scale.x = msg.scale*0.5;
     marker.scale.y = msg.scale*0.5;
     marker.scale.z = msg.scale*0.5;
-    marker.color.r = 0.05 + 1.0*(float)is_searching_area;
+    marker.color.r = 0.05 + 1.0*(float)is_inspection_area;
     marker.color.g = 0.80;
     marker.color.b = 0.02;
     marker.color.a = 1.0;
@@ -160,7 +157,6 @@ public:
     msg.controls.push_back(control);
 
     return msg.controls.back();
-
   }
 
   void processFeedback( const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback )
@@ -169,7 +165,7 @@ public:
     s << "Feedback from marker '" << feedback->marker_name << "' "
       << " / control '" << feedback->control_name << "'";
   
-    switch ( feedback->event_type )
+    switch(feedback->event_type)
     {
       case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
         {
@@ -183,7 +179,7 @@ public:
     server->applyChanges();
   }
   
-  void makeWaypointMarker(const geometry_msgs::PoseStamped new_pose, const sensor_msgs::NavSatFix gps_fix, int is_searching_area, double reach_threshold)
+  void makeWaypointMarker(const geometry_msgs::PoseStamped new_pose, const sensor_msgs::NavSatFix gps_fix, int is_inspection_area, double reach_threshold)
   {
     InteractiveMarker int_marker;
     int_marker.header.frame_id = "map";
@@ -212,7 +208,7 @@ public:
     int_marker.name = s.str();
     int_marker.description = s.str();
 
-    makeWaypointMarkerControl(int_marker, is_searching_area);
+    makeWaypointMarkerControl(int_marker, is_inspection_area);
 
     server->insert(int_marker);
     server->setCallback(int_marker.name, boost::bind(&CirkitWaypointGenerator::processFeedback, this, _1));
@@ -222,7 +218,7 @@ public:
     waypoint.id = waypoint_box_count_;
     waypoint.pose = new_pose.pose;
     waypoint.gps_fix = gps_fix;
-    waypoint.is_search_area = is_searching_area;
+    waypoint.is_inspection_area = is_inspection_area;
     waypoint.reach_tolerance = reach_threshold/2.0;
     waypoints_.waypoints.push_back(waypoint);
     
@@ -274,14 +270,6 @@ public:
         last_pose_ = map_pose;
       }
     }
-
-    // double diff_dist = calculateDistance(amcl_pose->pose);
-    // double diff_yaw = calculateAngle(amcl_pose->pose);
-    // if(diff_dist > dist_th_ || diff_yaw > yaw_th_)
-    // {
-    //   makeWaypointMarker(amcl_pose->pose, 0, 3.0);
-    //   last_pose_ = amcl_pose->pose;
-    // }
   }
 
   void publishWaypointCallback(const ros::TimerEvent&)
@@ -290,15 +278,6 @@ public:
     waypoints_pub_.publish(waypoints_);
     server->applyChanges();
   }
-
-  // void clickedPointCallback(const geometry_msgs::PointStamped &point)
-  // {
-  //   geometry_msgs::PoseStamped pose;
-  //   tf::pointTFToMsg(tf::Vector3( point.point.x, point.point.y, 0), pose.pose.position);
-  //   tf::quaternionTFToMsg(tf::createQuaternionFromRPY(0, 0, 0), pose.pose.orientation);
-  //   makeWaypointMarker(pose, 0, 3.0);
-  //   server->applyChanges();
-  // }
   
   void tfSendTransformCallback(const ros::TimerEvent&)
   {  
@@ -332,9 +311,7 @@ public:
 private:
   ros::NodeHandle nh_;
   ros::Rate rate_;
-  //ros::Subscriber odom_sub_;
   ros::Subscriber gps_sub_;
-  // ros::Subscriber clicked_sub_;
   ros::Publisher reach_marker_pub_;
   ros::Publisher waypoints_pub_;
   geometry_msgs::PoseStamped last_pose_;

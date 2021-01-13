@@ -83,7 +83,7 @@ public:
                savefile << static_cast<uint16_t> (waypoints.waypoints[i].gps_fix.position_covariance_type) << ","
 
                /* TODO: maybe remove these */
-               << waypoints.waypoints[i].is_search_area << ","
+               << waypoints.waypoints[i].is_inspection_area << ","
                << waypoints.waypoints[i].reach_tolerance * 2.0 << std::endl;
       
       ROS_INFO_STREAM("ID: " << waypoints.waypoints[i].id << " Fix Status: " << static_cast<uint16_t> (waypoints.waypoints[i].gps_fix.status.status) << " Cov Type: " << static_cast<uint16_t> (waypoints.waypoints[i].gps_fix.position_covariance_type));

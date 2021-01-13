@@ -88,16 +88,12 @@ public:
     ROS_INFO_STREAM(waypoint_box_count_ << " waypoints are loaded.");
   }
 
-
   void getRPY(const geometry_msgs::Quaternion &q,
               double &roll,double &pitch,double &yaw){
     tf::Quaternion tfq(q.x, q.y, q.z, q.w);
     tf::Matrix3x3(tfq).getRPY(roll, pitch, yaw);
   }
 
-  
-
-  
   void makeWaypointMarker(const geometry_msgs::PoseStamped new_pose,
                           int is_searching_area, double reach_threshold)
   {
