@@ -43,6 +43,8 @@ public:
         waypoint_box_count_ = 0;
 
         server.reset(new interactive_markers::InteractiveMarkerServer("cube"));
+
+        initialized = false;
     }
 
     /*------------------------------------------------------------------------------
@@ -318,10 +320,11 @@ public:
             ROS_INFO_STREAM("Map Pose received");
             double diff_dist = calculateDistance(map_pose);
             double diff_yaw = calculateAngle(map_pose);
-            if(diff_dist > dist_th_ || diff_yaw > yaw_th_) {
+            if(diff_dist > dist_th_ || diff_yaw > yaw_th_ || !initialized) {
                 ROS_INFO("Adding new waypoint");
                 makeWaypointMarker(map_pose, *fix, 0, 3.0);
                 last_pose_ = map_pose;
+                initialized = true;
             }
         }
     }
@@ -392,6 +395,7 @@ private:
     visualization_msgs::MarkerArray reach_threshold_markers_;
     tf::TransformBroadcaster br_;
     tf::TransformListener listener;
+    bool initialized;
 };
 
 int main(int argc, char** argv) {
