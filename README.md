@@ -16,6 +16,8 @@ This project has two messages, `Waypoint` and `Waypoint Array`, which are implem
 
 * `route_generator`: This node possess the function buildRoute, which is responsible for building a route based on a Waypoint IDs list. It also includes an example of usage, loading the waypoints from a file and building a pre-defined route.
 
+* `transfer_waypoints`: This node loads waypoints from a csv file and send them to a server over a http request.
+
 ## Examples
 
 ### Generate waypoints
@@ -24,7 +26,7 @@ Assuming `roscore` is already running.
 
     $ rosrun cirkit_waypoint_generator cirkit_waypoint_generator
 
-Setting `yaw_th` to 3.14 and `dist_th` to 2.0:
+Setting `yaw_th` to 3.14 rad and `dist_th` to 2.0 meters:
 
     $ rosrun cirkit_waypoint_generator cirkit_waypoint_generator _dist_th:=2.0 _yaw_th:=3.14
 
@@ -45,6 +47,12 @@ This will generate a new csv file on the current directory with a name based on 
 Assuming `roscore` is already running and there is a *.csv file with waypoints stored.
 
     $ rosrun cirkit_waypoint_generator route_generator _waypoints_path:=path_to_waypoints_file.csv
+
+### Send Waypoints to a Server
+
+Assuming `roscore` is already running.
+
+    $ rosrun transfer_waypoints send.py _waypoints_file:=path_to_waypoints_file.csv
 
 ## Visualizing waypoints on RViz
 
