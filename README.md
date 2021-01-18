@@ -2,6 +2,12 @@
 
 A ROS Waypoint Generator using robot's estimated pose on the map and GPS localization. Inspired on the project [CIR-KIT Waypoint Manager](https://github.com/CIR-KIT/cirkit_waypoint_manager).
 
+## Requisits
+
+* `requests` - Necessary to send the waypoints to a server. To install it:
+
+        $ pip install requests
+
 ## Messages 
 
 This project has two messages, `Waypoint` and `Waypoint Array`, which are implemented on the package `cirkit_waypoint_manager_msgs`.
