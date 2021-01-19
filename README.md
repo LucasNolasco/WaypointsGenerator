@@ -2,11 +2,15 @@
 
 A ROS Waypoint Generator using robot's estimated pose on the map and GPS localization. Inspired on the project [CIR-KIT Waypoint Manager](https://github.com/CIR-KIT/cirkit_waypoint_manager).
 
-## Requisits
+## Dependencies
 
 * `requests` - Necessary to send the waypoints to a server. To install it:
 
         $ pip install requests
+
+* `flask` - For running the test server. To install it:
+
+        $ pip install flask
 
 ## Messages 
 
@@ -59,6 +63,11 @@ Assuming `roscore` is already running and there is a *.csv file with waypoints s
 Assuming `roscore` is already running.
 
     $ rosrun transfer_waypoints send.py _waypoints_file:=path_to_waypoints_file.csv
+
+For tests there are csv files on `transfer_waypoints/waypoints/`. Also for tests, there is a test server made using flask which receives the waypoints and print them on the screen. To run this test server:
+
+    $ roscd transfer_waypoints
+    $ python src/testServer.py
 
 ## Visualizing waypoints on RViz
 
