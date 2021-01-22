@@ -28,6 +28,12 @@ This project has two messages, `Waypoint` and `Waypoint Array`, which are implem
 
 * `transfer_waypoints`: This node loads waypoints from a csv file and send them to a server over a http request.
 
+## Waypoint Storage - CSV File Format
+
+The csv file must have one waypoint for each row and each of these rows must have the following format:
+
+* id, x, y, z, Qx, Qy, Qz, Qw, status, status_service, latitude, longitude, altitude, covariance (9), covariance_type, is_searching_area, reach_threshold
+
 ## Examples
 
 ### Generate waypoints
@@ -40,7 +46,7 @@ Setting `yaw_th` to 3.14 rad and `dist_th` to 2.0 meters:
 
     $ rosrun cirkit_waypoint_generator cirkit_waypoint_generator _dist_th:=2.0 _yaw_th:=3.14
 
-Loading waypoints from a csv file:
+Loading waypoints from a csv file.
 
     $ rosrun cirkit_waypoint_generator cirkit_waypoint_generator --load path_to_csv_file.csv
 
@@ -63,6 +69,20 @@ Assuming `roscore` is already running and there is a *.csv file with waypoints s
 Assuming `roscore` is already running.
 
     $ rosrun transfer_waypoints send.py _waypoints_file:=path_to_waypoints_file.csv
+
+This node sends each of these waypoints on a JSON with the following fields:
+
+```
+{
+    "name": "Ponto 4", // Waypoint's ID is 4
+    "lat": 49.9, // Latitude
+    "lng": 8.9, // Longitude
+    "map_id": 1, // For now, this is always 1
+    "x": , 6.22// x coordinate of robot's estimated position (meters)
+    "y": , -3.13// y coordinate of robot's estimated position (meters)
+    "teta": -1.63, // Rotation of robot's estimated position, equivalent to yaw (measured in radians)
+}
+```
 
 For tests there are csv files on `transfer_waypoints/waypoints/`. Also for tests, there is a test server made using flask which receives the waypoints and print them on the screen. To run this test server:
 
