@@ -28,7 +28,7 @@ This project has two messages, `Waypoint` and `Waypoint Array`, which are implem
 
 * `transfer_waypoints`: This node loads waypoints from a csv file and send them to a server over a http request.
 
-## Waypoint Storage - CSV File Format
+## Waypoints' Storage - CSV File Format
 
 The csv file must have one waypoint for each row and each of these rows must have the following format:
 
